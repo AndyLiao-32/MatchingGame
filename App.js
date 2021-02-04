@@ -9,9 +9,34 @@ import {
   SafeAreaView, // for iphone XR or later version
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from 'react-native';
 
 import Card from './Card'
+
+// Firebase App (the core Firebase SDK) is always required and
+// must be listed before other Firebase SDKs
+import firebase from "firebase/app";
+
+// Add the Firebase services that you want to use
+import "firebase/auth";
+import "firebase/firestore";
+
+// TODO: Replace the following with your app's Firebase project configuration
+// For Firebase JavaScript SDK v7.20.0 and later, `measurementId` is an optional field
+var firebaseConfig = {
+  apiKey: "AIzaSyDjpBHzrVMHIGsNPChMkmwD_Ul4tvaSPck",
+  authDomain: "memorygame-6cead.firebaseapp.com",
+  projectId: "memorygame-6cead",
+  storageBucket: "memorygame-6cead.appspot.com",
+  messagingSenderId: "301340557441",
+  appId: "1:301340557441:web:7aae6deea2ccd9ee578d80",
+  measurementId: "G-057X6R3NLJ"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+//firebase.analytics();
 
 class App extends Component {
 
@@ -41,6 +66,9 @@ class App extends Component {
       cardSymbolsInRand,
       isOpen,
     })
+
+    firebase.auth().signInWithEmailAndPassword("rli342@gatech.edu", "tester")
+            .then(() => { }, (error) => { Alert.alert(error.message); });
   }
 
   componentDidMount() {
@@ -92,6 +120,7 @@ class App extends Component {
           this.setState({
             isEnded: true,
           })
+
           return 
         }
       }
