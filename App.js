@@ -11,8 +11,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-
-import Card from './Card'
+import { AppLoading, Asset, Font } from 'expo';
 
 // Firebase App (the core Firebase SDK) is always required and
 // must be listed before other Firebase SDKs
@@ -22,251 +21,121 @@ import firebase from "firebase/app";
 import "firebase/auth";
 import "firebase/firestore";
 
-// TODO: Replace the following with your app's Firebase project configuration
-// For Firebase JavaScript SDK v7.20.0 and later, `measurementId` is an optional field
-var firebaseConfig = {
-  apiKey: "AIzaSyDjpBHzrVMHIGsNPChMkmwD_Ul4tvaSPck",
-  authDomain: "memorygame-6cead.firebaseapp.com",
-  projectId: "memorygame-6cead",
-  storageBucket: "memorygame-6cead.appspot.com",
-  messagingSenderId: "301340557441",
-  appId: "1:301340557441:web:7aae6deea2ccd9ee578d80",
-  measurementId: "G-057X6R3NLJ"
-};
+import Game from './Game'
+import Card from './Card'
+import Login from './Login'
+import ApiKeys from './ApiKeys';
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-//firebase.analytics();
 
 class App extends Component {
 
-  state = {
-    cardSymbols: [
-      '😎', '😱', '🤡', '👻', '👀', '🐶', '🥃', '🏀',
-    ],
-    cardSymbolsInRand: [],
-    isOpen: [],
-    firstPickedIndex: null,
-    secondPickedIndex: null,
-    steps: 0,
-    isEnded: false,
+  constructor(props) {
+    super(props);
+    this.state = {
+      isLoadingComplete: false,
+      isAuthenticationReady: false,
+      isAuthenticated: false,
+    };
+
+    // Initialize firebase...
+    if (!firebase.apps.length) { firebase.initializeApp(ApiKeys.FirebaseConfig); }
+    firebase.auth().onAuthStateChanged(this.onAuthStateChanged);
   }
 
-  initGame = () => {
-    let newCardsSymbols = [...this.state.cardSymbols, ...this.state.cardSymbols]
-    let cardSymbolsInRand = this.shuffleArray(newCardsSymbols)
-
-    let isOpen = []
-
-    for (let i = 0; i < newCardsSymbols.length; i++) {
-      isOpen.push(false)
-    }
-
-    this.setState({
-      cardSymbolsInRand,
-      isOpen,
-    })
-
-    firebase.auth().signInWithEmailAndPassword("rli342@gatech.edu", "tester")
-            .then(() => { }, (error) => { Alert.alert(error.message); });
+  onAuthStateChanged = (user) => {
+    this.setState({isAuthenticationReady: true});
+    this.setState({isAuthenticated: !!user});
   }
-
-  componentDidMount() {
-    this.initGame()
-  }
-
-  shuffleArray = (arr) => {
-    const newArr = arr.slice()
-    for (let i = newArr.length - 1; i > 0; i--) {
-      const rand = Math.floor(Math.random() * (i + 1));
-      [newArr[i], newArr[rand]] = [newArr[rand], newArr[i]]
-    }
-    return newArr
-  }
-
-  cardPressHandler = (index) => {
-    let isOpen = [...this.state.isOpen]
-
-    // deal with the problem of double clicking on the card which is already opened
-    if (isOpen[index]) {
-      return;
-    }
-
-    isOpen[index] = true
-
-    if (this.state.firstPickedIndex == null && this.state.secondPickedIndex == null) {
-      this.setState({
-        isOpen,
-        firstPickedIndex: index,
-      })
-    } else if (this.state.firstPickedIndex != null && this.state.secondPickedIndex == null){
-      this.setState({
-        isOpen,
-        secondPickedIndex: index,
-      })
-    }
-
-    this.setState({
-      steps: this.state.steps + 1,
-    })
-  }
-
-  calculateGameResult = () => {
-    if (this.state.firstPickedIndex != null && this.state.secondPickedIndex != null) {
-      
-      if (this.state.cardSymbolsInRand.length > 0) {
-        let totalOpens = this.state.isOpen.filter((isOpen) => isOpen)
-        if (totalOpens.length === this.state.cardSymbolsInRand.length) {
-          this.setState({
-            isEnded: true,
-          })
-
-          return 
-        }
-      }
-
-
-      let firstSymbol = this.state.cardSymbolsInRand[this.state.firstPickedIndex]
-      let secondSymbol = this.state.cardSymbolsInRand[this.state.secondPickedIndex]
-
-      if (firstSymbol != secondSymbol) {
-        setTimeout(() => {
-          let isOpen = [...this.state.isOpen]
-          isOpen[this.state.firstPickedIndex] = false
-          isOpen[this.state.secondPickedIndex] = false
-
-          this.setState({
-            firstPickedIndex: null,
-            secondPickedIndex: null,
-            isOpen,
-          })
-        }, 1000)
-      } else {
-        this.setState({
-          firstPickedIndex: null,
-          secondPickedIndex: null,
-        })
-      }
-    }
-  }
-
-  componentDidUpdate(prevPops, prevState) {
-    if (prevState.secondPickedIndex != this.state.secondPickedIndex) {
-      this.calculateGameResult()
-    }
-  }
-
-  resetGame = () => {
-    this.initGame()
-
-    this.setState({
-      firstPickedIndex: null,
-      secondPickedIndex: null,
-      steps: 0,
-      isEnded: false,
-    })
-  }
-
+  
   render() {
+    // if ( (!this.state.isLoadingComplete || !this.state.isAuthenticationReady) && !this.props.skipLoadingScreen) {
+    //   // return (
+    //   //   <AppLoading
+    //   //     startAsync={this._loadResourcesAsync}
+    //   //     onError={this._handleLoadingError}
+    //   //     onFinish={this._handleFinishLoading}
+    //   //   />
+    //   // );
+    //   return (<Login/>)
+    // } else {
+    //   return (
+    //     <View style={styles.container}>
+    //       {(this.state.isAuthenticated) ? <Game /> : <Login />}
+    //     </View>
+    //   )
+    // }
     return (
-      <>
-        <StatusBar />
-        <SafeAreaView style={ styles.container }>
-          <View style={ styles.header }>
-            <Text style={ styles.heading }> Matching Game </Text>
-          </View>
-          <View style={ styles.main }>
-            <View style={ styles.gameBoard}>
-              {this.state.cardSymbolsInRand.map((symbol, index) =>
-                <Card key={index} onPress={ () => this.cardPressHandler(index)} style={ styles.button } fontSize={30} title={symbol} cover="❓" isShow={this.state.isOpen[index]}/>
-              )}
-            </View>
-          </View>
-          <View style={ styles.footer }>
-            <Text style={ styles.footing }> {
-              this.state.isEnded 
-                ? `Congrats! You have completed in ${this.state.steps} steps.`
-                : `You have tried ${this.state.steps} times(s).`
-            }</Text>
-            {this.state.isEnded ?
-              <TouchableOpacity onPress={ this.resetGame } style={ styles.tryAgainButton}>
-                <Text style={ styles.tryAgainButtonText}>Try Again</Text>
-              </TouchableOpacity>
-              : null
-            }
-            <Text style={ styles.footing }>   </Text>
-            <Text style={ styles.footing }> Published by Andy & Ryan </Text>
-          </View>
-        </SafeAreaView>
-      </>
-    )
+        <View style={styles.container}>
+          {(this.state.isAuthenticated) ? <Game /> : <Login />}
+        </View>
+      )
   }
 }
 
 export default App
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'yellow',
-  },
-  header: {
-    flex: 1,
-    backgroundColor: '#eee',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heading : {
-    fontSize: 36,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  main: {
-    flex: 3,
-    backgroundColor: '#fff',
-  },
-  buttonText: {
+  // container: {
+  //   flex: 1,
+  //   backgroundColor: 'yellow',
+  // },
+  // header: {
+  //   flex: 1,
+  //   backgroundColor: '#eee',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // heading : {
+  //   fontSize: 36,
+  //   fontWeight: 'bold',
+  //   textAlign: 'center',
+  // },
+  // main: {
+  //   flex: 3,
+  //   backgroundColor: '#fff',
+  // },
+  // buttonText: {
 
-  },
-  footer: {
-    flex: 1,
-    backgroundColor: '#eee',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footing : {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  gameBoard: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignContent: 'center',
-  },
-  button: {
-    backgroundColor: '#ccc',
-    borderRadius: 8,
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: (Dimensions.get('window').width - (48*4)) / (5*2),
-  },
-  buttonText: {
-    fontSize: 30,
-  },
-  tryAgainButton: {
-    backgroundColor: 'steelblue',
-    padding: 8,
-    borderRadius: 8,
-    marginTop: 20,
-  },
-  tryAgainButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  }
+  // },
+  // footer: {
+  //   flex: 1,
+  //   backgroundColor: '#eee',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // footing : {
+  //   fontSize: 20,
+  //   fontWeight: 'bold',
+  //   textAlign: 'center',
+  // },
+  // gameBoard: {
+  //   flex: 1,
+  //   flexDirection: 'row',
+  //   flexWrap: 'wrap',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   alignContent: 'center',
+  // },
+  // button: {
+  //   backgroundColor: '#ccc',
+  //   borderRadius: 8,
+  //   width: 48,
+  //   height: 48,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   margin: (Dimensions.get('window').width - (48*4)) / (5*2),
+  // },
+  // buttonText: {
+  //   fontSize: 30,
+  // },
+  // tryAgainButton: {
+  //   backgroundColor: 'steelblue',
+  //   padding: 8,
+  //   borderRadius: 8,
+  //   marginTop: 20,
+  // },
+  // tryAgainButtonText: {
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  // }
 })
